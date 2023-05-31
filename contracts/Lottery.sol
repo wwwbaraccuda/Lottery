@@ -1,34 +1,40 @@
-pragma solidity ^0.4.17;
+pragma solidity >=0.7.0 <0.9.0;
 
-contract Lottery {
-    address public manager;
-    address[] public players;
-    
-    function Lottery() public {
+contract Lotere {
+    address manager;
+    address[] peserta;
+    address payable penerima;
+    uint index;
+
+    function deployContract() private {
         manager = msg.sender;
     }
-    
-    function enter() public payable {
-        require(msg.value > .01 ether);
-        players.push(msg.sender);
+
+    function inputUang() public payable {
+        require(msg.value> .01 ether, "Tidak cukup uang");
+        peserta.push(msg.sender);
     }
-    
-    function random() private view returns (uint) {
-        return uint(keccak256(block.difficulty, now, players));
+
+    function angkaRandom() private view returns(uint) {
+        return uint(keccak256(abi.encodePacked(block.prevrandao, block.timestamp, peserta)));
     }
-    
-    function pickWinner() public restricted {
-        uint index = random() % players.length;
-        players[index].transfer(this.balance);
-        players = new address[](0);
-    }
-    
-    modifier restricted() {
-        require(msg.sender == manager);
+
+    modifier managerOnly() {
+        require(msg.sender == manager, "Harus manager yang memilih");
         _;
     }
-    
-    function getPlayers() public view returns (address[]) {
-        return players;
+
+    function pilihPemenang() public managerOnly {
+        index = angkaRandom() % peserta.length;
+        penerima = payable (peserta[index]);
+        penerima.transfer(address(this).balance);
     }
-}   
+    function tampilkanPemenang() public view returns(address) {
+        return(penerima);
+    }
+
+    function tampilkanPeserta() public view returns(address[] memory) {
+        return(peserta);
+    }
+
+}
